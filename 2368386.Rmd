@@ -1,0 +1,784 @@
+---
+title: "CS5801 Coursework Leonardo Moreira Pina"
+author: "2368386"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document: default
+  html_notebook: default
+version: 1
+---
+
+
+```{r}
+# Libraries used in this project
+library(validate)
+library(ggplot2)
+library(tree)
+```
+
+
+# 1. Organise and clean the data
+
+## 1.1 Subset the data into the specific dataset allocated
+
+```{r}
+SID <- 2368386                 
+SIDoffset <- (SID %% 50) + 1    
+
+load("car-analysis-data.Rda")
+
+car.dataset <- cars.analysis[seq(from=SIDoffset,to=nrow(cars.analysis),by=50),]
+```
+
+
+## 1.2 Data quality analysis plan
+
+  First, we need to check the type of each variable, along with the range (and mean) of their values, which can be done with the summary() function.    
+  Furthermore, we must check for any missing, negative or invalid values in our dataset, as it's a priority to address these incoherent values. Outliers are also something to look for, as we can use plots to easily identify these. In more detail, we will analyse these variables according to their type. For the numerical variables, we will see what the minimum, maximum and mean values are, along with a boxplot and histogram graphical visualisation, and check if these are coherent in the context of a car dataset.     
+  We will look for logical variables, in other words, variables with only two values, in order to see if we can consider them logical variables. For the categorical variables, we will check if the categories are coherent in the car context, while using barplots to compare their frequencies. Finally, to identify, gather and address these data problems, we will form constraints and rules to check if the data passes all the quality tests, and check which variables present which data problems.
+
+## 1.3 Data quality analysis findings
+
+  To start our analysis, we used summary(), str() functions, to see what variables were presented, with their respective (and missing) values and initial types.
+
+```{r}
+print("--------------------summary----------------------------")
+summary(car.dataset) # to display a summary of all the variables
+print("----------------------structure--------------------------")
+str(car.dataset) # to analyse the structure of each variable
+
+print("----------------------missing values--------------------------")
+#check which and how many variables have NA rows
+na.values <- colSums(is.na(car.dataset))
+print(na.values)
+
+old.car.dataset <- car.dataset # just so we have the uncleaned version of the dataset, so we can then make some comparisons
+
+```
+  After that, we proceeded to visualise: the numerical variables, "year", "mileage", "engine_size", "min_mpg", "max_mpg", and "price", using the boxplot() and geom_histogram() function; variables that only have two values (logical), "automatic_transmission", "damaged", "first_owner", "navigation_system", "bluetooth", "third_row_seating", and "heated_seats", using the plot() and table() functions to see their frequencies; categorical variables, "brand", "drivetrain", and "fuel", using the barplot() and table() functions to see frequencies.
+
+```{r}
+#let's see boxplots for the numerical variables
+boxplot(car.dataset[, 2], main = "Boxplot of year", col = c("red")) # boxplot of the year column
+boxplot(car.dataset[, 3], main = "Boxplot of mileage", col = c("blue")) # boxplot of the mileage column
+boxplot(car.dataset[, 4], main = "Boxplot of engine_size", col = c("green")) # boxplot of the engine size column
+boxplot(car.dataset[, 8], main = "Boxplot of min_mpg", col = c("grey")) # boxplot of the min mpg column
+boxplot(car.dataset[, 9], main = "Boxplot of max_mpg", col = c("brown")) # boxplot of the max mpg column
+boxplot(car.dataset[, 16], main = "Boxplot of price", col = c("yellow")) # boxplot of the price column
+```
+
+```{r}
+#let's look into the distribution of the numerical variables
+ggplot(data = car.dataset, aes(x=year)) + geom_histogram(bins = 20) + theme_classic()+ ggtitle("year Distribution")
+
+ggplot(data = car.dataset, aes(x=mileage)) + geom_histogram(bins = 20) + theme_classic()+ ggtitle("mileage Distribution")
+
+ggplot(data = car.dataset, aes(x=engine_size)) + geom_histogram(bins = 20) + theme_classic()+ ggtitle("engine_size Distribution")
+
+ggplot(data = car.dataset, aes(x=min_mpg)) + geom_histogram(bins = 20) + theme_classic()+ ggtitle("min_mpg Distribution")
+
+ggplot(data = car.dataset, aes(x=max_mpg)) + geom_histogram(bins = 20) + theme_classic()+ ggtitle("max_mpg Distribution")
+
+ggplot(data = car.dataset, aes(x=price)) + geom_histogram(bins = 20) + theme_classic()+ ggtitle("price Distribution")
+```
+
+```{r}
+#let's see the plots for the factor variables
+plot(table(car.dataset$automatic_transmission), xlab="automatic transmission", ylab = "frequency", main = "automatic transmission Frequency")
+plot(table(car.dataset$damaged), xlab="damaged", ylab = "frequency", main = "damaged Frequency")
+plot(table(car.dataset$first_owner), xlab="first owner", ylab = "frequency", main = "first owner Frequency")
+plot(table(car.dataset$navigation_system), xlab="navigation system", ylab = "frequency", main = "navigation system Frequency")
+plot(table(car.dataset$bluetooth), xlab="bluetooth", ylab = "frequency", main = "bluetooth Frequency")
+plot(table(car.dataset$third_row_seating), xlab="third row seating", ylab = "frequency", main = "third row seating Frequency")
+plot(table(car.dataset$heated_seats), xlab="heated seats", ylab = "frequency", main = "heated seats Frequency")
+```
+
+```{r}
+#let's see barplots for the categorical variables
+barplot(table(car.dataset$brand), col = "green", main = "brand group Frequency", xlab = "brand", ylab = "frequency", las = 2) #las = 2 rotates the names so it fits in the x label
+barplot(table(car.dataset$drivetrain), col = "red", main = "drivetrain group Frequency", xlab = "drivetrain", ylab = "frequency")
+barplot(table(car.dataset$fuel), col = "blue", main = "fuel group Frequency", xlab = "fuel", ylab = "frequency")
+```
+
+
+  We used the validator() function (with defined constraints) to check for invalid data.
+  
+```{r}
+#validation checks
+
+#just to then check if the min and max values for the Mpg are acceptable
+car.dataset$diff_max_min_mpg <- car.dataset$max_mpg - car.dataset$min_mpg
+
+# defining rules and contraints using the `validator()` function
+car.rules <- validator(valBrand = is.element(car.dataset$brand,c("Alfa","Audi","BMW","Cadillac","Chevrolet","FIAT","Ford"
+   ,"Honda","Hyundai","Jaguar","Jeep","Kia","Land","Lexus","Maserati","Mazda","Mercedes-Benz","MINI","Mitsubishi"
+   ,"Nissan","Porsche","Suzuki","Toyota","Volkswagen","Volvo")), # to check if there are invalid brand names
+   NonNegMileage = car.dataset$mileage >= 0, # to check if mileage has negative values
+   NonNegEngineSize = car.dataset$engine_size > 0.0, # to check if engine_size has negative values
+   valAutTransm = (car.dataset$automatic_transmission == 0 | car.dataset$automatic_transmission == 1), # to check if automatic_transmission has other values aside from 0 or 1
+   valFuel = is.element(car.dataset$fuel,c("Diesel","Electric","GPL","Hybrid","Petrol")),# to check if there are invalid fuel names
+   valDriveTrain = is.element(car.dataset$drivetrain,c("Four-wheel Drive","Front-wheel Drive","Rear-wheel Drive")), # to check if there are invalid drivetrain names
+   valDamaged = (car.dataset$damaged == 0 | car.dataset$damaged == 1), # to check if damaged has other values aside from 0 or 1
+   valFirstOwner = (car.dataset$first_owner == 0 | car.dataset$first_owner == 1), # to check if first_owner has other values aside from 0 or 1
+   valNavSys = (car.dataset$navigation_system == 0 | car.dataset$navigation_system == 1), # to check if navigation_system has other values aside from 0 or 1
+   valBluetooth = (car.dataset$bluetooth == 0 | car.dataset$bluetooth == 1), # to check if bluetooth has other values aside from 0 or 1
+   valThirdRowSeating = (car.dataset$third_row_seating == 0 | car.dataset$third_row_seating == 1), # to check if third_row_seating has other values aside from 0 or 1
+   valHeatedSeats = (car.dataset$heated_seats == 0 | car.dataset$heated_seats == 1), # to check if heated_seats has other values aside from 0 or 1
+   NonNegPrice = car.dataset$price > 0, # to check if price has negative or 0 values
+   NonNegMinMpg = car.dataset$min_mpg >= 0.0, # to check if min_mpg has negative values
+   NonNegMaxMpg = car.dataset$max_mpg >= 0.0, # to check if max_mpg has negative values
+   valMinMaxMpg = car.dataset$diff_max_min_mpg >= 0.0 # to check if diff_max_min_mpg has negative values
+   )
+
+#apply these rules to the dataset and check the results before we cleaned the data
+rule.check.before <- confront(car.dataset,car.rules)
+#summary(rule.check.before)
+plot(rule.check.before)
+```
+
+```{r}
+#data cleaning
+
+#change type of variables to factor (as these variables only have two values, 0s and 1s) so these don't get treated as numerical
+car.dataset$automatic_transmission <- as.factor(car.dataset$automatic_transmission)
+car.dataset$damaged <- as.factor(car.dataset$damaged)
+car.dataset$first_owner <- as.factor(car.dataset$first_owner)
+car.dataset$navigation_system <- as.factor(car.dataset$navigation_system)
+car.dataset$bluetooth <- as.factor(car.dataset$bluetooth)
+car.dataset$third_row_seating <- as.factor(car.dataset$third_row_seating)
+car.dataset$heated_seats <- as.factor(car.dataset$heated_seats)
+
+#manually "fixing" some values
+car.dataset$fuel[car.dataset$fuel == "Pertol"] <- "Petrol" #there is obviously a typographical error so we can easily fix it
+car.dataset$drivetrain[car.dataset$drivetrain == "Unknown"] <- NA #we will change this value to NA so it's easier to deal with since it still is missing info
+
+car.dataset$engine_size[car.dataset$engine_size <= 0.0] <- NA #because it is impossible for a engine size to be 0 so we will mark it as NA
+
+car.dataset$max_mpg[car.dataset$max_mpg < 0.0] <- NA #because it is impossible for the max_mpg to be below 0 so we will mark it as NA
+
+#let's substitute NA values for real random values in a range from the minimum to the maximum value in the variable
+
+car.dataset$engine_size[is.na(car.dataset$engine_size)] <- round(runif(sum(is.na(car.dataset$engine_size)), min = 2.0, max = 6.7), digits = 1) # we use min as 2.0 because apart from zero, it's the minimum value for this variable
+
+wheels <- c("Four-wheel Drive", "Front-wheel Drive", "Rear-wheel Drive")
+
+car.dataset$drivetrain[is.na(car.dataset$drivetrain)] <-  wheels[sample(1:length(wheels), sum(is.na(car.dataset$drivetrain)), replace = TRUE)] #we are taking one random (index) string from the array to input in the missing values
+
+logical.values <- c(0,1)
+
+car.dataset$damaged[is.na(car.dataset$damaged)] <-  logical.values[sample(1:length(logical.values), sum(is.na(car.dataset$damaged)), replace = TRUE)]
+
+car.dataset$first_owner[is.na(car.dataset$first_owner)] <-  logical.values[sample(1:length(logical.values), sum(is.na(car.dataset$first_owner)), replace = TRUE)]
+
+car.dataset$min_mpg[is.na(car.dataset$min_mpg)] <- round(runif(sum(is.na(car.dataset$min_mpg)), min = 0.0, max = 30.0), digits = 1) # we put 30 as the max range value, because the outliers are too high (maximum value is 72), which will then affect the max_mpg, so we are choosing an approximation of the value of the top whisker seen in the previous boxplot
+
+car.dataset$max_mpg[is.na(car.dataset$max_mpg)] <- pmin(
+  runif(sum(is.na(car.dataset$max_mpg)), min = car.dataset$min_mpg[is.na(car.dataset$max_mpg)], max = 80.0),
+  car.dataset$min_mpg[is.na(car.dataset$max_mpg)]
+) # [1]
+
+#create the column again (as the other variables have changed)
+car.dataset$diff_max_min_mpg <- car.dataset$max_mpg - car.dataset$min_mpg
+#apply these rules to the dataset and check the results after we cleaned the data
+rule.check.after <- confront(car.dataset,car.rules)
+#summary(rule.check.after)
+plot(rule.check.after)
+
+```
+
+ 
+## 1.4 Data cleaning  
+
+  We first noticed some (plausible) outliers in the numerical variables, which we kept, as it's still valuable data. Every numerical variable, except "price", presented some kind of skewness. The "engine_size", "min_mpg", "max_mpg", "damaged", and "first_owner" variables presented a considerable amount of missing values. To check the difference between the values of "max_mpg" and "min_mpg", we created a new variable "diff_max_min_mpg" that calculates that difference. Moreover, There was a category "Pertol" in "fuel", which we manually changed to "Petrol", an "Unknown" category in "drivetrain", which we changed to NA value, as we did for the negative values in "engine_size" and "max_mpg".
+  Variables that contained only 0s and 1s were changed to factor type (because we considered them logical). As for all these NA (missing) values, and now that all the considered invalid values had been converted to NA, for the categorical and logical variables that were missing values, we imputed random values by choosing one from the existing categories, for the numerical, we imputed random values within the range of that variable. We also considered that min_mpg <= max_mpg values for the same row. These choices were made to not centralize the distribution of the data or simply ignore these issues. 
+
+
+# 2. Exploratory Data Analysis (EDA)
+
+## 2.1 EDA plan
+
+  First, we need to check if the dataset suffered any significant change from the imputation of new values, therefore, we must perform significance tests to the old and new variables to see if these changes affected the dataset. 
+  We will visualise graphically again our new data (as we did in 1.3). After that, we will then look into the relations between the variables. So we need to chose our dependent variable, adequate for our research purpose, as we will see, graphically (with the adequate plot, depending of the types of the variables), the relation between that variable and the other existing ones. To study the relation between numerical variables, we will use a normal plot and cor-test, for numerical with categorical, boxplot and t-test, and for numerical with logical, boxplot and ANOVA. 
+  We need to perform these significance tests to understand what variables are affecting significantly the dependent variable we chose. As mentioned, it's important to notice that for different variables we are going to use different tests. Thus, we are also going to study some other relations between other variables that we believe are connected, which can be useful for further sections.
+
+## 2.2 EDA execution   
+
+  To start, we used summary() to see the new data values. To evaluate the difference between these datasets, we used t-test for numerical variables, chisq-test for categorical and factor (logical) variables. 
+  We then visualised the data, similar to the 1.3 section. Assuming the dependent variable is "price", we used pairs() to see the plots of all the relations of the numerical variables, and used the cor.test(). We used boxplots, t.test(), and aov(), to see the relation of "price" with all the other variables.
+
+```{r}
+print("------------summary--------------")
+summary(car.dataset) # let's see the summary of our data after we cleaned it
+print("-------------structure-----------")
+str(car.dataset)
+print("-----------relation tests----------")
+
+# as we added some new values to some variables so we could clean the data, let's now check the relation between the old and new variables, and see if these new values significantly affected these variables
+
+# we are only going to check this for the variables that suffered from any changes
+
+# the numerical variables first...
+
+# H0: the mean of "old.car.dataset$engine_size" is equal to the mean of "car.dataset$engine_size"
+t.test(old.car.dataset$engine_size, car.dataset$engine_size)
+
+# H0: there isn't a significant difference between the old "min_mpg" and the new "min_mpg"
+#t.test(old.car.dataset$min_mpg, car.dataset$min_mpg, paired = TRUE)
+min_mpg.mean.nomissing <- mean(old.car.dataset$min_mpg, na.rm = TRUE) # as we don't want to consider the NA values in the test
+# H0: the mean of car.dataset$min_mpg is equal to min_mpg.mean.nomissing (which is the mean of old.car.dataset$min_mpg)
+t.test(car.dataset$min_mpg, mu=min_mpg.mean.nomissing, alternative="two.sided")
+
+# H0: the mean of "old.car.dataset$max_mpg" is equal to the mean of "car.dataset$max_mpg"
+t.test(old.car.dataset$max_mpg, car.dataset$max_mpg)
+```
+
+```{r}
+# now the categorical and logical variables
+
+# H0: there isn't a relationship between the old "fuel" and the new "fuel"
+chisq.test(table(old.car.dataset$fuel, car.dataset$fuel))
+
+# H0: there isn't a relationship between the old "drivetrain" and the new "drivetrain"
+chisq.test(table(old.car.dataset$drivetrain, car.dataset$drivetrain))
+
+# H0: there isn't a relationship between the old "damaged" and the new "damaged"
+chisq.test(table(old.car.dataset$damaged, car.dataset$damaged))
+
+# H0: there isn't a relationship between the old "first_owner" and the new "first_owner"
+chisq.test(table(old.car.dataset$first_owner, car.dataset$first_owner))
+
+```
+
+```{r}
+#let's now check how the resulting plots for the variables are, considering the data cleaning we did in the previous section
+
+#let's see boxplots for the numerical variables
+boxplot(car.dataset[, 2], main = "Boxplot of year after data cleaning", col = c("red")) # boxplot of the year column
+boxplot(car.dataset[, 3], main = "Boxplot of mileage after data cleaning", col = c("blue")) # boxplot of the mileage column
+boxplot(car.dataset[, 4], main = "Boxplot of engine size after data cleaning", col = c("green")) # boxplot of the engine size column
+boxplot(car.dataset[, 8], main = "Boxplot of min mpg after data cleaning", col = c("grey")) # boxplot of the min mpg column
+boxplot(car.dataset[, 9], main = "Boxplot of max mpg after data cleaning", col = c("brown")) # boxplot of the max mpg column
+boxplot(car.dataset[, 16], main = "Boxplot of price after data cleaning", col = c("yellow")) # boxplot of the price column
+```
+
+```{r}
+#Let's now see the distribution of this same numerical variables
+ggplot(data=car.dataset, aes(x=year)) + geom_histogram(bins = 20) + theme_classic() +ggtitle("Histogram of year after data cleaning") + xlab("Year") 
+
+ggplot(data=car.dataset, aes(x=mileage)) + geom_histogram(bins = 20) + theme_classic() +ggtitle("Histogram of mileage after data cleaning") + xlab("Mileage") 
+
+ggplot(data=car.dataset, aes(x=engine_size)) + geom_histogram(bins = 20) + theme_classic() +ggtitle("Histogram of engine size after data cleaning") + xlab("Engine size") 
+
+ggplot(data=car.dataset, aes(x=min_mpg)) + geom_histogram(bins = 20) + theme_classic() +ggtitle("Histogram of min mpg after data cleaning") + xlab("Min_mpg")
+
+ggplot(data=car.dataset, aes(x=max_mpg)) + geom_histogram(bins = 20) + theme_classic() +ggtitle("Histogram of max mpg after data cleaning") + xlab("Max_mpg")
+
+ggplot(data=car.dataset, aes(x=price)) + geom_histogram(bins = 20) + theme_classic() +ggtitle("Histogram of price after data cleaning") + xlab("Price")
+
+```
+
+```{r}
+#let's see plots for the factor/logical variables
+plot(table(car.dataset$automatic_transmission), xlab="automatic transmission", ylab = "frequency ", main = "automatic transmission Frequency after data cleaning")
+
+plot(table(car.dataset$damaged), xlab="damaged", ylab = "frequency", main = "damaged Frequency after data cleaning")
+
+plot(table(car.dataset$first_owner), xlab="first owner", ylab = "frequency", main = "first owner Frequency after data cleaning")
+
+plot(table(car.dataset$navigation_system), xlab="navigation system", ylab = "frequency", main = "navigation system Frequency after data cleaning")
+
+plot(table(car.dataset$bluetooth), xlab="bluetooth", ylab = "frequency", main = "bluetooth Frequency after data cleaning")
+
+plot(table(car.dataset$third_row_seating), xlab="third row seating", ylab = "frequency", main = "third row seating Frequency after data cleaning")
+
+plot(table(car.dataset$heated_seats), xlab="heated seats", ylab = "frequency", main = "heated seats Frequency after data cleaning")
+
+```
+
+```{r}
+#let's see barplots for the categorical variables
+barplot(table(car.dataset$brand), col = "green", main = "brand group Frequency after data cleaning", xlab = "brand", ylab = "frequency", las = 2) #las = 2 rotates the names so it fits in the x label
+barplot(table(car.dataset$drivetrain), col = "red", main = "drivetrain group Frequency after data cleaning", xlab = "drivetrain", ylab = "frequency")
+barplot(table(car.dataset$fuel), col = "blue", main = "fuel group Frequency after data cleaning", xlab = "fuel", ylab = "frequency")
+
+```
+
+
+```{r}
+#now we'll see some of the relations between variables
+#assuming the dependent variable is "price"
+
+#first let's see the relation between numerical variables through plots
+
+cars.numerical.variables <- car.dataset[, c("year", "mileage","engine_size","min_mpg","max_mpg","price")] # we are creating a subset just to visualise these variable's relations with the "pairs()" function
+
+pairs(cars.numerical.variables, panel = panel.smooth)
+
+#Let's plot the important relations we got from the pairs() function with the "price" variable
+
+plot(car.dataset$year, car.dataset$price, main="price vs year relation", xlab="year", ylab="price")
+
+#now let's check the correlation between price and year variables
+# H0: there isn't a correlation between "year" and "price"
+cor.test(car.dataset$year, car.dataset$price,  method = "spearman") # we use the spearman method when we suspect the relation isn't linear
+
+plot(car.dataset$mileage, car.dataset$price, main="price vs mileage", xlab="mileage", ylab="price")
+
+```
+
+```{r}
+#now let's check the correlation between price and mileage variables
+
+# H0: there isn't a correlation between "mileage" and "price"
+cor.test(car.dataset$mileage, car.dataset$price,  method = "spearman") # we use the spearman method when we suspect the relation isn't linear
+
+#now we will plot the relation between factor variables and the price variable
+
+ggplot(data = car.dataset, aes(x = automatic_transmission, y = price)) +
+  geom_boxplot() +
+  labs(x = "automatic_transmission", y = "price") +ggtitle("automatic_transmission vs price boxplot") # automatic_transmission vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "automatic_transmission" variable
+t.test(car.dataset$price ~ car.dataset$automatic_transmission, data = car.dataset)
+
+ggplot(data = car.dataset, aes(x = damaged, y = price)) +
+  geom_boxplot() +
+  labs(x = "damaged", y = "price")+ggtitle("damaged vs price boxplot") # damaged vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "damaged" variable
+t.test(car.dataset$price ~ car.dataset$damaged, data = car.dataset)
+
+ggplot(data = car.dataset, aes(x = first_owner, y = price)) +
+  geom_boxplot() +
+  labs(x = "first_owner", y = "price")+ggtitle("first_owner vs price boxplot") # first_owner vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "first_owner" variable
+t.test(car.dataset$price ~ car.dataset$first_owner, data = car.dataset)
+
+ggplot(data = car.dataset, aes(x = navigation_system, y = price)) +
+  geom_boxplot() +
+  labs(x = "navigation_system", y = "price")+ggtitle("navigation_system vs price boxplot") # navigation_system vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "navigation_system" variable
+t.test(car.dataset$price ~ car.dataset$navigation_system, data = car.dataset)
+
+ggplot(data = car.dataset, aes(x = bluetooth, y = price)) +
+  geom_boxplot() +
+  labs(x = "bluetooth", y = "price")+ggtitle("bluetooth vs price boxplot") # bluetooth vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "bluetooth" variable
+t.test(car.dataset$price ~ car.dataset$bluetooth, data = car.dataset)
+
+ggplot(data = car.dataset, aes(x = third_row_seating, y = price)) +
+  geom_boxplot() +
+  labs(x = "third_row_seating", y = "price")+ggtitle("third_row_seating vs price boxplot") # third_row_seating vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "third_row_seating" variable
+t.test(car.dataset$price ~ car.dataset$third_row_seating, data = car.dataset)
+
+ggplot(data = car.dataset, aes(x = heated_seats, y = price)) +
+  geom_boxplot() +
+  labs(x = "heated_seats", y = "price")+ggtitle("heated_seats vs price boxplot") # heated_seats vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "heated_seats" variable
+t.test(car.dataset$price ~ car.dataset$heated_seats, data = car.dataset)
+
+```
+
+```{r}
+#now let's do the same but with the categorical variables
+
+ggplot(data = car.dataset, aes(x = brand, y = price)) +
+  geom_boxplot() +
+  labs(x = "brand", y = "price")+ggtitle("brand vs price boxplot") + theme(axis.text.x = element_text(angle=90)) # brand vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups that compose the "brand" variable
+summary(aov(car.dataset$price ~ car.dataset$brand, data = car.dataset))
+
+ggplot(data = car.dataset, aes(x = fuel, y = price)) +
+  geom_boxplot() +
+  labs(x = "fuel", y = "price")+ggtitle("fuel vs price boxplot") # fuel vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups that compose the "fuel" variable
+summary(aov(car.dataset$price ~ car.dataset$fuel, data = car.dataset))
+
+ggplot(data = car.dataset, aes(x = drivetrain, y = price)) +
+  geom_boxplot() +
+  labs(x = "drivetrain", y = "price")+ggtitle("drivetrain vs price boxplot") # drivetrain vs price boxplot
+
+# H0: there isn't a significant difference in the means of the groups that compose the "drivetrain" variable
+summary(aov(car.dataset$price ~ car.dataset$drivetrain, data = car.dataset))
+
+```
+
+```{r}
+# let's analyse some relations worth plotting since first_owner is an important info, we are also going to check if there is a relation between some "modern" features and the year of the car
+
+ggplot(data = car.dataset, aes(x = first_owner, y = year)) +
+  geom_boxplot() +
+  labs(x = "first_owner", y = "year")+ggtitle("first_owner vs year boxplot") # first_owner vs year boxplot
+
+ggplot(data = car.dataset, aes(x = first_owner, y = mileage)) +
+  geom_boxplot() +
+  labs(x = "first_owner", y = "mileage")+ggtitle("first_owner vs mileage boxplot") # first_owner vs mileage boxplot
+
+ggplot(data = car.dataset, aes(x = bluetooth, y = year)) +
+  geom_boxplot() +
+  labs(x = "bluetooth", y = "year")+ggtitle("bluetooth vs year boxplot") # bluetooth vs year boxplot
+
+ggplot(data = car.dataset, aes(x = navigation_system, y = year)) +
+  geom_boxplot() +
+  labs(x = "navigation_system", y = "year")+ggtitle("navigation_system vs year boxplot") # navigation_system vs year boxplot
+
+ggplot(data = car.dataset, aes(x = heated_seats, y = year)) +
+  geom_boxplot() +
+  labs(x = "heated_seats", y = "year")+ggtitle("heated_seats vs year boxplot") # heated_seats vs year boxplot
+
+plot(car.dataset$year, car.dataset$mileage, main="year vs mileage relation", xlab="year", ylab="mileage") # year vs mileage plot
+
+```
+
+## 2.3 EDA summary of results
+
+  By analysing the results, we can see that by performing the t-test for the "engine_size", "min_mpg" and "max_mpg" variables, we got very low p-values (less than 0.05), so we reject the null hypotheses, which indicates that there are no significant differences in the means. The same happened for the "fuel", "drivetrain", "damaged", and "first_owner" variables, when performing the chisq-test, as we can conclude that there is a significant relation for all of these, which leads us to believe that the altered variables didn't significantly affect the dataset. 
+  By looking at the plots outputted of the new dataset, we conclude that the differences made had no relevant impact, as confirmed before, so the behaviour of the variables was mainly the same. We chose the "price" as the dependent variable. Again the "price" variable is the only one that appears to be normally distributed and not skewed. Several plots and tests were computed to evaluate the relation between "price" and the other independent variables, the plot shown by pairs() allows us to notice that there is a possible relation (exponencial shaped) with the "year" and "mileage" variables, which the correlation tests approved with their extremely low p-values, as "engine_size", "min_mpg", and "max_mpg" scatterplots don't show any evident relation with "price". Furthermore, we can also see the relation with all the categorical and logical variables represented in the boxplots computed, which give us a good idea of how the price values change within each class. 
+  By analysing the t-tests and ANOVA performed on these categorical and logical variables, we can realize that all outputted low p-values (except "fuel"), so we can reject the null hypotheses, and therefore consider that there is a significant difference in the means of the groups that compose these variables, even though the p-values were very different.
+
+## 2.4 Additional insights and issues
+
+  Assuming the "price" is a dependent variable, for the (independent) numerical variables only the "year" and "mileage" variables are considered significantly related, as these significantly affect the dependent variable. As for the (independent) categorical and logical variables, we can say that there is a significant relation with the dependent variable, as the values of "price" present considerable fluctuations for a different choice of category in each of these variables (as we can see in the results when testing their "price" means). 
+  Meanwhile, "mileage", "engine_size" presented right skewness, "year" left skewness, and "price", "min_mpg", "max_mpg" a more normal distribution.
+  We also considered the "first_owner" as a potential dependent variable, as being a first owner (or not) of a car can be hinted by some car features, as we can see in the boxplots computed, the variables "year" and "mileage" seem to be related to "first_owner". 
+  Other relations were boxplotted to see how the year of the car was affected by some of its features, such as "bluetooth", "navigation_system", "heated_seats", but no evident relations were detected. The relation between "year" and "mileage" was also plotted, in which we can't draw much conclusions, as the "year" values are not spread enough. 
+
+
+# 3. Modelling
+
+## 3.1 Explain your analysis plan
+
+  Considering the previous results, we know that the dependent variable "price" is related to the following variables, "year", "first_owner", "mileage", "automatic_transmission", "brand", "drivetrain", "damaged", "navigation_system", "bluetooth", "third_row_seating", and "heated_seats". So we will build a multiple regression model to evaluate how these variables fit together, using a linear regression model. In order to achieve this, we are first building a regression tree to measure the order of the interactions between these variables, and how these affect the "price" variable. 
+  Furthermore, we are then creating a first maximum model, where we will consider these related variables, and also highlight the evident relation previously discovered, where the "mileage", and "year" relate to the "first_owner" variable. Then, we will build towards a minimal adequate model, as in each step, we are going to remove from the model one variable or interaction, by measuring their p-value (we are striving for lower p-values). Our minimal adequate model, should have only significant relation, with a low p-value, while also presenting a good R-squared and F-statistic values, so we can consider the resulting model as a good fit. 
+  Graphical visualisations of these models will also be plotted.
+
+## 3.2 Build a model for car price
+
+  To start our implementation, we used the tree() function (with the plot() and text()) to see the hierarchy of relations between "price" and the other variables. Our maximum linear regression model will be built with the lm() function, where we inputted all the independent variables related with "price" mentioned above, while considering the relation between "mileage", "first_owner", and "year", which we will input with the "*" operator, where we checked the results with the summary() and plot() functions. 
+
+```{r}
+# as our dependent variable "price" is continuous, we will use a linear regression model
+
+price.tree<-tree(car.dataset$price~., data = car.dataset) # [2]
+plot(price.tree)
+text(price.tree)
+
+```
+
+```{r}
+
+max.model.price.v1 <- lm(car.dataset$price ~ car.dataset$mileage * car.dataset$first_owner * car.dataset$year + car.dataset$brand + car.dataset$automatic_transmission + car.dataset$drivetrain + car.dataset$damaged + car.dataset$navigation_system + car.dataset$bluetooth + car.dataset$third_row_seating + car.dataset$heated_seats, data=car.dataset) #linear regression model
+
+summary(max.model.price.v1)
+
+plot(max.model.price.v1)
+```
+
+  We applied the step() function to get the minimal adequate model of the previous one, so we could get a fitter model.
+```{r}
+min.model.price.v1 <- step(max.model.price.v1)
+
+#resulting minimum model
+# min.model.price.v1 <- lm(formula = car.dataset$price ~ car.dataset$mileage + car.dataset$first_owner + car.dataset$year + car.dataset$brand + car.dataset$drivetrain + car.dataset$damaged + car.dataset$navigation_system + car.dataset$third_row_seating + car.dataset$mileage:car.dataset$first_owner + car.dataset$mileage:car.dataset$year + car.dataset$first_owner:car.dataset$year, data = car.dataset)
+
+summary(min.model.price.v1)
+
+plot(min.model.price.v1)
+```
+
+
+## 3.3 Critique model using relevant diagnostics
+
+  By looking at the "max.model.price.v1" results, we can see that there are many variables and interactions with a high p-value, which is not optimal. We obtained a good multiple R-squared value, with an acceptably low F-statistic value, and a low associated p-value. Overall, this maximum model revealed results that point to a reasonable fit, while having too many interactions happening. 
+  Moreover, when analysing the "min.model.price.v1" results, we can notice that this model shows a bit less variables, therefore is simpler (with some insignificant elements), while giving more focus to the lower p-valued ones. This minimum adequate fitting model presents a slightly (insignificant) difference in the multiple R-squared value, along with an increased F-statistic value, and a similar p-value. By analysing the plots, we can notice that, both these models show a slight heteroscedasticy behaviour, as the variance of the residuals softly increase with the mean of the predicted values, which isn't ideal. In this same plot we can see a curve, which indicates that the relation between the dependent variable and the other ones modeled is not quite linear. We can see an almost straight line (light tailed) in the qq-plot, which indicates that there's almost a normal distribution. [4]    
+
+## 3.4 Suggest and implement improvements to your model
+
+  Even though the "min.model.price.v1" is an acceptable fit, there are still some weaknesses to this model. To improve its variance, we built another model "max.model.price.v2", where we transformed the dependent variable "price" into log(), so we could try to stabilize the variance of the residuals, while getting rid of the "brand" variable for simplicity purposes, and by doing so, get a better fitting model. [4]
+
+```{r}
+
+max.model.price.v2 <- lm(log(car.dataset$price) ~ car.dataset$mileage * car.dataset$first_owner * car.dataset$year + car.dataset$automatic_transmission + car.dataset$drivetrain + car.dataset$damaged + car.dataset$navigation_system + car.dataset$bluetooth + car.dataset$third_row_seating + car.dataset$heated_seats, data=car.dataset) # this is a "max.model.price.v1" alternative model, in which we transformed the "price" variable with the log() function, as this variable does not have values equal to zero
+
+summary(max.model.price.v2)
+plot(max.model.price.v2)
+
+```
+
+```{r}
+min.model.price.v2 <- step(max.model.price.v2)
+
+#resulting minimum model
+# min.model.price.v2 model -> lm(formula = log(car.dataset$price) ~ car.dataset$mileage + car.dataset$first_owner + car.dataset$year + car.dataset$automatic_transmission + car.dataset$drivetrain + car.dataset$damaged + car.dataset$navigation_system + car.dataset$bluetooth + car.dataset$third_row_seating + car.dataset$mileage:car.dataset$first_owner + car.dataset$mileage:car.dataset$year + car.dataset$first_owner:car.dataset$year + car.dataset$mileage:car.dataset$first_owner:car.dataset$year, data = car.dataset)
+
+summary(min.model.price.v2)
+
+plot(min.model.price.v2)
+```
+
+  By analysing the "max.model.price.v2" results, we can notice that, while there are still some high p-valued variables, the multiple R-squared value increased considerably when looking at the previous models, as well the F-statistic value. After we applied the step() function once again to try to get a better model, by analysing this resulting "min.model.price.v1" model results, we can notice that, while still having some variables and interactions with a high p-value, the multiple R-squared value continues optimal, and the F-statistic suffered an even higher increase. 
+  By looking at the plots, we can see that the variance plot has more of a homoscedasticy and a lesser curved shape, so a linear behaviour. The qq-plot follow a straight line (light tailed).
+  Ultimately, we propose the "min.model.price.v2" as the final model, as it revealed the best fitting results. 
+
+# 4. Modelling another dependent variable
+
+## 4.1 Model the likelihood of a car being sold by the first owner (using the first_owner variable provided).
+
+  An EDA analysis (as we did in section 2.2) will be done, where we will now consider the "first_owner" as the dependent variable. 
+  First, we are going to use a histogram plot to see the relation between this variable with all the categorical variables, along with a chisq-test to study the significance of their relation. We will also do the same process with the other logical variables. To study the relation with the numerical variables, we will use boxplots for graphical visualisation, while testing the significant difference in the means of the groups with the t-test.   
+
+```{r}
+#let's see the different relations between the "first_owner" variable with the others
+
+#let's start with the categorical variables
+
+#table showing how the "first_owner" changes in the categories of "brand"
+print("table: first_owner vs brand")
+table(car.dataset$first_owner, car.dataset$brand)
+#plot for better visualisation
+ggplot(car.dataset, aes(interaction(car.dataset$first_owner, car.dataset$brand))) +
+  geom_bar() + ggtitle("first_owner vs brand")
+  theme(axis.text.x = element_text(angle = 90)) # [3]
+#H0 -> first_owner isn't significantly related to brand
+chisq.test(car.dataset$first_owner, car.dataset$brand)
+
+print("--------------------------------------")
+
+#table showing how the "first_owner" changes in the categories of "fuel"
+print("table: first_owner vs fuel")
+table(car.dataset$first_owner, car.dataset$fuel)
+
+ggplot(car.dataset, aes(interaction(car.dataset$first_owner, car.dataset$fuel))) +
+  geom_bar() + ggtitle("first_owner vs fuel")
+#H0 -> first_owner isn't significantly related to brand
+chisq.test(car.dataset$first_owner, car.dataset$fuel)
+
+print("--------------------------------------")
+
+#table showing how the "first_owner" changes in the categories of "drivetrain"
+print("table: first_owner vs drivetrain")
+table(car.dataset$first_owner, car.dataset$drivetrain)
+
+ggplot(car.dataset, aes(interaction(car.dataset$first_owner, car.dataset$drivetrain))) +
+geom_bar() + ggtitle("first_owner vs drivetrain") # [5]
+#H0 -> first_owner isn't significantly related to brand
+chisq.test(car.dataset$first_owner, car.dataset$drivetrain)
+
+```
+
+```{r}
+#let's proceed to the logical variables
+
+#table showing how the "first_owner" relates to "automatic_transmission"
+print("table: first_owner vs automatic_transmission")
+table(car.dataset$first_owner, car.dataset$automatic_transmission)
+
+ggplot(car.dataset, aes(interaction(car.dataset$first_owner, car.dataset$automatic_transmission))) +
+  geom_bar() + ggtitle("first_owner vs automatic_transmission")
+
+#H0 -> first_owner isn't significantly related to automatic_transmission
+chisq.test(car.dataset$first_owner, car.dataset$automatic_transmission)
+
+print("--------------------------------------")
+
+#table showing how the "first_owner" relates to "damaged"
+print("table: first_owner vs damaged")
+table(car.dataset$first_owner, car.dataset$damaged)
+
+ggplot(car.dataset, aes(interaction(car.dataset$first_owner, car.dataset$damaged))) +
+  geom_bar() + ggtitle("first_owner vs damaged")
+
+#H0 -> first_owner isn't significantly related to damaged
+chisq.test(car.dataset$first_owner, car.dataset$damaged)
+
+print("--------------------------------------")
+
+#table showing how the "first_owner" relates to "navigation_system"
+print("table: first_owner vs navigation_system")
+table(car.dataset$first_owner, car.dataset$navigation_system)
+
+ggplot(car.dataset, aes(interaction(car.dataset$first_owner, car.dataset$navigation_system))) +
+  geom_bar() + ggtitle("first_owner vs navigation_system")
+
+#H0 -> first_owner isn't significantly related to navigation_system
+chisq.test(car.dataset$first_owner, car.dataset$navigation_system)
+
+print("--------------------------------------")
+
+#table showing how the "first_owner" relates to "bluetooth"
+print("table: first_owner vs bluetooth")
+table(car.dataset$first_owner, car.dataset$bluetooth)
+
+ggplot(car.dataset, aes(interaction(car.dataset$first_owner, car.dataset$bluetooth))) +
+  geom_bar() + ggtitle("first_owner vs bluetooth")
+
+#H0 -> first_owner isn't significantly related to bluetooth
+chisq.test(car.dataset$first_owner, car.dataset$bluetooth)
+
+print("--------------------------------------")
+
+#table showing how the "first_owner" relates to "third_row_seating"
+print("table: first_owner vs third_row_seating")
+table(car.dataset$first_owner, car.dataset$third_row_seating)
+
+ggplot(car.dataset, aes(interaction(car.dataset$first_owner, car.dataset$third_row_seating))) +
+  geom_bar() + ggtitle("first_owner vs third_row_seating")
+
+#H0 -> first_owner isn't significantly related to third_row_seating
+chisq.test(car.dataset$first_owner, car.dataset$third_row_seating)
+
+print("--------------------------------------")
+
+#table showing how the "first_owner" relates to "heated_seats"
+print("table: first_owner vs heated_seats")
+table(car.dataset$first_owner, car.dataset$heated_seats)
+
+ggplot(car.dataset, aes(interaction(car.dataset$first_owner, car.dataset$heated_seats))) +
+  geom_bar() + ggtitle("first_owner vs heated_seats")
+
+#H0 -> first_owner isn't significantly related to heated_seats
+chisq.test(car.dataset$first_owner, car.dataset$heated_seats)
+
+```
+
+```{r}
+#now let's check for the numerical variables
+
+#boxplot showing how the "first_owner" relates to "year"
+ggplot(data = car.dataset, aes(x = first_owner, y = year)) +
+  geom_boxplot() +
+  labs(x = "first_owner", y = "year")+ggtitle("first_owner vs year boxplot")
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "year" variable
+t.test(car.dataset$year ~ car.dataset$first_owner, data = car.dataset)
+
+print("--------------------------------------")
+
+#boxplot showing how the "first_owner" relates to "mileage"
+ggplot(data = car.dataset, aes(x = first_owner, y = mileage)) +
+  geom_boxplot() +
+  labs(x = "first_owner", y = "mileage")+ggtitle("first_owner vs mileage boxplot")
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "mileage" variable
+t.test(car.dataset$mileage ~ car.dataset$first_owner, data = car.dataset)
+
+print("--------------------------------------")
+
+#boxplot showing how the "first_owner" relates to "engine_size"
+ggplot(data = car.dataset, aes(x = first_owner, y = engine_size)) +
+  geom_boxplot() +
+  labs(x = "first_owner", y = "engine_size")+ggtitle("first_owner vs engine_size boxplot")
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "engine_size" variable
+t.test(car.dataset$engine_size ~ car.dataset$first_owner, data = car.dataset)
+
+print("--------------------------------------")
+
+#boxplot showing how the "first_owner" relates to "min_mpg"
+ggplot(data = car.dataset, aes(x = first_owner, y = min_mpg)) +
+  geom_boxplot() +
+  labs(x = "first_owner", y = "min_mpg")+ggtitle("first_owner vs min_mpg boxplot")
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "min_mpg" variable
+t.test(car.dataset$min_mpg ~ car.dataset$first_owner, data = car.dataset)
+
+print("--------------------------------------")
+
+#boxplot showing how the "first_owner" relates to "min_mpg"
+ggplot(data = car.dataset, aes(x = first_owner, y = max_mpg)) +
+  geom_boxplot() +
+  labs(x = "first_owner", y = "max_mpg")+ggtitle("first_owner vs max_mpg boxplot")
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "max_mpg" variable
+t.test(car.dataset$max_mpg ~ car.dataset$first_owner, data = car.dataset)
+
+print("--------------------------------------")
+
+#boxplot showing how the "first_owner" relates to "price"
+ggplot(data = car.dataset, aes(x = first_owner, y = price)) +
+  geom_boxplot() +
+  labs(x = "first_owner", y = "price")+ggtitle("first_owner vs price boxplot")
+
+# H0: there isn't a significant difference in the means of the groups (0 or 1) that compose the "price" variable
+t.test(car.dataset$price ~ car.dataset$first_owner, data = car.dataset)
+```
+
+  By looking at the results, we can see that some variables, such as "drivetrain", "heated_seats", "year", "mileage", and "price", according to the p-values obtained in the tests performed, showed a significant relation with the dependent variable. That relation is also evident in the outputted plots. 
+  
+  To build our first model, we used a logistic regression model, as our dependent variable "first_owner" is a logical variable, which makes this model the most suitable. Moreover, for this maximum model, we used the glm() function, in which inputted the variables that we considered that had a significant relation with the dependent variable, according to the previous results.
+
+```{r}
+
+max.model.first_owner.v1 <- glm(car.dataset$first_owner~ car.dataset$year + car.dataset$price + car.dataset$mileage + car.dataset$drivetrain + car.dataset$heated_seats, family=binomial) #logistic regression model
+
+summary(max.model.first_owner.v1)
+
+plot(max.model.first_owner.v1)
+
+```
+
+  We applied the step() function to get the minimal adequate model of the previous one, so we could get a fitter model.
+
+```{r}
+min.model.first_owner.v1 <- step(max.model.first_owner.v1)
+
+#resulting minimum model
+#min.model.first_owner.v1 model -> glm(formula = car.dataset$first_owner ~ car.dataset$year + car.dataset$mileage, family = binomial)
+
+summary(min.model.first_owner.v1)
+
+plot(min.model.first_owner.v1)
+```
+
+We applied the exp() and coef() functions to the minimal model.
+
+```{r}
+#to extract the coefficients and also exponentiate the coefficients of the resulting model
+exp(coef(min.model.first_owner.v1))
+```
+
+  By analysing the results, we can notice that the "min.model.first_owner.v1" model is simpler and more suitable than the "max.model.first_owner.v1", as it presents less independent variables, and every one of these has a low p-value, meaning these all have a significant relation with the "first_owner" variable. However, the deviance and AIC values didn't really decreased much. The odds of the car being sold by the first owner, increase approximately by a factor of 1.2 and 0.99 with the unit increase of "years" and "mileage", respectively. 
+  
+  Even though the minimum model is still a fitter model, we built another maximum model to explore and optimize the previous model, so we could get an even fitter model. In this new "max.model.first_owner.v2" model, we considered the interactions between the "price" and the other variables (according to the results obtained in section 2.3).
+
+```{r}
+max.model.first_owner.v2 <- glm(car.dataset$first_owner ~ car.dataset$year + car.dataset$mileage + car.dataset$drivetrain + car.dataset$heated_seats + car.dataset$price + car.dataset$price:car.dataset$year + car.dataset$price:car.dataset$mileage + car.dataset$price:car.dataset$drivetrain + car.dataset$price:car.dataset$heated_seats, family=binomial) # this model is an alternative max.model.first_owner.v1 model, in which we also inputted all the interactions with the "price" variable, as it was something that we had already explored
+
+summary(max.model.first_owner.v2)
+
+plot(max.model.first_owner.v2)
+```
+
+```{r}
+min.model.first_owner.v2 <- step(max.model.first_owner.v2)
+
+#resulting minimum model
+#min.model.first_owner.v2 model -> glm(formula = car.dataset$first_owner ~ car.dataset$year + car.dataset$mileage + car.dataset$price + car.dataset$year:car.dataset$price + car.dataset$mileage:car.dataset$price, family = binomial)
+
+summary(min.model.first_owner.v2)
+
+plot(min.model.first_owner.v2)
+```
+
+```{r}
+#to extract the coefficients and also exponentiate the coefficients of the resulting model
+exp(coef(min.model.first_owner.v2))
+```
+
+  By analysing these final results, we can conclude that the "min.model.first_owner.v2" model presented the best results, as it presented the lowest deviance and AIC values of all the models presented, which make it the fittest one. Furthermore, all its variables presented a low p-value, which means these are all related with the dependent variable significantly. In this model, the odds of the car being sold by the first owner, increase approximately by a factor of 0.83, 0.99, 0.96 with the unit increase of "years", "mileage", and "price" respectively, while also considering the interactions between the "price" and these two variables. Altogether, we can propose the "min.model.first_owner.v2" as the final model, as it revealed the best fitting results, while being optimal, and overall more suitable for our research.
+
+# References  
+
+[1] ChatGPT-3.5, https://chat.openai.com/
+[2] "lab-7-independent-practice-a-solution" CS5701 Week 7 independent practice
+[3] https://ggplot2.tidyverse.org/reference/element.html
+[4] [WEEK 7] Multiple Regression, CS5701 - Quantitative Data Analysis
+[5] https://stackoverflow.com/questions/67019793/bar-chart-of-logical-variables-ggplot
