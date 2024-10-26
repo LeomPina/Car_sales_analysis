@@ -45,23 +45,11 @@ By performing EDA on the chosen dataset, we studied the following aspects:
 
 3. Chosing our dependent variable
 
-4. Study the relation between numerical variables
-   
-&nbsp;  4.1. Scatter-plot
-  
-&nbsp;  4.2. Cor-test
+4. Study the relation between numerical variables (Scatter-plot, Cor-test)
 
-5. Study the relation between numerical and categorical variables
+5. Study the relation between numerical and categorical variables (Boxplot, t-test)
    
-  5.1. Boxplot
-  
-  5.2. t-test  
-
-6. Study the relation between numerical and logical variables
-   
-  6.1. Boxplot
-  
-  6.2. ANOVA   
+6. Study the relation between numerical and logical variables (Boxplot, ANOVA)
 
 ### Modelling
 
