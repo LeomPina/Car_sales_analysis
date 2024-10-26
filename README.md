@@ -39,11 +39,11 @@ During the data cleaning and preparation steps, we addressed the following issue
 
 By performing EDA on the chosen dataset, we studied the following aspects:
 
-1.Graphical data visualisation of the data
+1. Graphical data visualisation of the data
 
-2.Evaluate skewness
+2. Evaluate skewness
 
-3.Chosing our dependent variable
+3. Chosing our dependent variable
 
 4.Study the relation between numerical variables
   4.1.Scatter-plot
