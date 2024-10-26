@@ -47,9 +47,9 @@ By performing EDA on the chosen dataset, we studied the following aspects:
 
 4. Study the relation between numerical variables
    
-  4.1. Scatter-plot
+&nbsp;  4.1. Scatter-plot
   
-  4.2. Cor-test
+&nbsp;  4.2. Cor-test
 
 5. Study the relation between numerical and categorical variables
    
