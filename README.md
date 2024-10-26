@@ -18,3 +18,33 @@ The primary dataset used for this analysis is the "car-analysis-data.rda" datase
 -ggplot2
 
 -tree
+
+### Data Cleaning/Preparation
+
+During the data cleaning and preparation steps, we addressed the following issues:
+
+1.Incoherent values
+
+2.Outliers
+
+3.Duplicated Rows
+
+4.Missing Values
+
+5.Typos
+
+6.Wrong variable types
+
+### Exploratory Data Analysis
+
+By performing EDA on the chosen dataset, we studied the following aspects:
+
+1.Graphical data visualisation of the data
+
+2. Chosing our dependent variable
+
+3. 
+
+### Modelling
+
+
