@@ -41,10 +41,27 @@ By performing EDA on the chosen dataset, we studied the following aspects:
 
 1.Graphical data visualisation of the data
 
-2. Chosing our dependent variable
+2.Evaluate skewness
 
-3. 
+3.Chosing our dependent variable
+
+4.Study the relation between numerical variables
+  4.1.Scatter-plot
+  4.2.Cor-test
+
+5.Study the relation between numerical and categorical variables
+  5.1.Boxplot
+  5.2.t-test  
+
+6.Study the relation between numerical and logical variables
+  6.1.Boxplot
+  6.2.ANOVA   
 
 ### Modelling
 
+When building the models to study certain user questions, we used the following methods:
+
+1.Linear regression model
+
+2.Logistic regression model
 
