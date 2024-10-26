@@ -21,19 +21,19 @@ The primary dataset used for this analysis is the "car-analysis-data.rda" datase
 
 ### Data Cleaning/Preparation
 
-During the data cleaning and preparation steps, we addressed the following issues:
+During the data cleaning and preparation steps, we addressed the following possible issues:
 
-1.Incoherent values
+1. Incoherent values
 
-2.Outliers
+2. Outliers
 
-3.Duplicated Rows
+3. Duplicated Rows
 
-4.Missing Values
+4. Missing Values
 
-5.Typos
+5. Typos
 
-6.Wrong variable types
+6. Wrong variable types
 
 ### Exploratory Data Analysis
 
@@ -45,23 +45,23 @@ By performing EDA on the chosen dataset, we studied the following aspects:
 
 3. Chosing our dependent variable
 
-4.Study the relation between numerical variables
-  4.1.Scatter-plot
-  4.2.Cor-test
+4. Study the relation between numerical variables
+  4.1. Scatter-plot
+  4.2. Cor-test
 
-5.Study the relation between numerical and categorical variables
-  5.1.Boxplot
-  5.2.t-test  
+5. Study the relation between numerical and categorical variables
+  5.1. Boxplot
+  5.2. t-test  
 
-6.Study the relation between numerical and logical variables
-  6.1.Boxplot
-  6.2.ANOVA   
+6. Study the relation between numerical and logical variables
+  6.1. Boxplot
+  6.2. ANOVA   
 
 ### Modelling
 
 When building the models to study certain user questions, we used the following methods:
 
-1.Linear regression model
+1. Linear regression model
 
-2.Logistic regression model
+2. Logistic regression model
 
