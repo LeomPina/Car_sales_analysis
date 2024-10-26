@@ -1,6 +1,6 @@
 ---
-title: "CS5801 Coursework Leonardo Moreira Pina"
-author: "2368386"
+title: "Car_sales_analysis"
+author: "LeomPina"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   pdf_document: default
